@@ -1,15 +1,16 @@
+options(xtable.comment = FALSE)
 ## ENTER DATA
-lines = readline(prompt="How many lines of data? ")
-data_str = readline(prompt="Please enter data as a vector with spaces separating each entry: ")
-data1 = as.numeric(unlist(strsplit(data_str," ")))
-
-if (as.character(lines) == "2") {
-  data_str = readline(prompt="Please enter data as a vector with spaces separating each entry: ")
-  data2 = as.numeric(unlist(strsplit(data_str," ")))
-  paired = "paired"
-} else {
-  paired = "not paired"
-}
+# lines = readline(prompt="How many lines of data? ")
+# data_str = readline(prompt="Please enter data as a vector with spaces separating each entry: ")
+# data1 = as.numeric(unlist(strsplit(data_str," ")))
+# 
+# if (as.character(lines) == "2") {
+#   data_str = readline(prompt="Please enter data as a vector with spaces separating each entry: ")
+#   data2 = as.numeric(unlist(strsplit(data_str," ")))
+#   paired = "paired"
+# } else {
+#   paired = "not paired"
+# }
 
 ## FOR TESTING ONLY: TAKE OUT!!
 
@@ -23,19 +24,32 @@ if (as.character(lines) == "2") {
 #paired = "paired"
 
 # Wilcoxon Sign Rank Test
+data1_label = "MD"
 # data1 = c(12500,22300,14500,32300,20800,19200,15800,17500,23300,42100,16800,14500)
+data2_label = ""
 # data2 = c(11750,20900,14800,29900,21500,18400,14500,17900,21400,43200,15200,14200)
-#paired = "paired"
+data1 = c(164353, 148135, 168235, 168932, 152793, 165827, 161855,
+          118044, 172665, 162262, 150408, 159091, 141299, 179262)
+data2 = c()
+ paired = "not paired"
+ data_digits = 0
+
+# data1_label = "Hours"
+# data1 = c(4, 7.5, 8, 7, 6, 5, 5.5, 6.5, 7 ,7.5, 4.5)
+# data2_label = ""
+# data2 = c()
+# paired = "not paired"
+# data_digits = 1
 
 # Both
 test_type = "3"
-null_hyp = 6
+null_hyp = 140616
 #"If there is _______, we will see our data or more extreme...:"
-null_hyp_expl_str = "a median of six hours per night sleep for students"
-alt_hyp_type = ">"
+null_hyp_expl_str = "a median debt amount for graduating MDs of \\$140,616"
+alt_hyp_type = "\\neq"
 #"There is [evidence measure] that ___________ (p = X.XXXX): "
 # -ing tense
-alt_hyp_expl_str = "students sleeping more than six hours per night"
+alt_hyp_expl_str = "doctors having graduating with more than \\$140,616 in debt"
 
 ## FOR TESTING ONLY: TAKE OUT!!
 
@@ -153,75 +167,113 @@ if (as.character(test_type) == "1") { # in One-Sample t-Test Mode
 } else if (as.character(test_type) == "3") {# in Wilcoxon Sign Rank Test Mode
   
   ## CALCULATE TEST STATISTIC
-  
+  big.frame = data.frame(1:length(data1))
   theta_0 = null_hyp
   if (paired == "paired") {
     Z = data1 - data2
     z_abstract_str = paste("Z_i = (x_i-y_i) - ",theta_0,sep="")
+    big.frame[data1_label] = data1
+    big.frame[data2_label] = data2
   } else {
     Z = data1 - rep(theta_0,length(data1))
     z_abstract_str = paste("Z_i = x_i-",theta_0,sep="")
+    big.frame[data1_label] = data1
   }
-
-  n = sum(Z!=0)
-  no_zeros_Z =Z[Z!=0]
-  abs_Z = abs(no_zeros_Z)
-  rank_Z = rep(-1,n)
-  psi_Z = sign(no_zeros_Z)==1
-  psi_prototype_str = "\\[\\Psi_i=\\begin{cases}1, & Z_i > 0 \\\\ 0 , & Z_i < 0\\end{cases}\\]"
+  big.frame["Z"] = Z
+  big.frame["|Z|"] = abs(Z)
+  big.frame["Ranks"] = rep(-1,length(Z))
+  big.frame["Psi"] = sign(Z)==1
+  n = sum(big.frame["|Z|"]!=0)
+  sorted_big.frame = big.frame[order(abs(Z)),]
   
-  z.frame=data.frame(no_zeros_Z, abs_Z,rank_Z, psi_Z)
-  sorted_z.frame = z.frame[order(abs_Z),]
+  # n = sum(Z!=0)
+  # no_zeros_Z =Z[Z!=0]
+  # abs_Z = abs(no_zeros_Z)
+  # rank_Z = rep(-1,n)
+  # psi_Z = sign(no_zeros_Z)==1
+  #   z.frame=data.frame(1:length(Z),n,no_zeros_Z, abs_Z,rank_Z, psi_Z)
+  # sorted_z.frame = z.frame[order(abs_Z),]
+  
+  
   last = -1
   is_tied = F
   tie_start = -1
   ties_exist = F
-  for(i in 1:nrow(sorted_z.frame)) {
-    if (is_tied == F && sorted_z.frame[i,"abs_Z"] == last) {
+  zero_count = 0
+  for(i in 1:nrow(sorted_big.frame)) {
+    if (sorted_big.frame[i,"Z"] == 0) {
+      zero_count = zero_count + 1
+    }
+    else if (is_tied == F && sorted_big.frame[i,"|Z|"] == last) {
       is_tied = T
       ties_exist = T
-      if (i == nrow(sorted_z.frame)) {
+      if (i == nrow(sorted_big.frame)) {
         tie_start = i-1
         avg = ((i) + tie_start) / 2
         for (k in tie_start:i) {
-          sorted_z.frame[k,"rank_Z"] = avg
+          sorted_big.frame[k,"Ranks"] = avg
         }
       } else {
         tie_start = i
       }
-    } else if (sorted_z.frame[i,"abs_Z"] == last) {
+    } else if (sorted_big.frame[i,"|Z|"] == last) {
     } else if (is_tied == T) {
       # set all previous ones to tied average
       avg = ((i-1) + tie_start-1) / 2
       for (k in tie_start:i-1) {
-        sorted_z.frame[k,"rank_Z"] = avg
+        sorted_big.frame[k,"Ranks"] = avg
       }
-      sorted_z.frame[i,"rank_Z"] = i 
-      last = sorted_z.frame[i,"abs_Z"]
+      sorted_big.frame[i,"Ranks"] = i 
+      last = sorted_big.frame[i,"|Z|"]
       # Not tied anymore
       is_tied = F
     } else {
-      sorted_z.frame[i,"rank_Z"] = i 
-      last = sorted_z.frame[i,"abs_Z"]
-      
+      sorted_big.frame[i,"Ranks"] = i 
+      last = sorted_big.frame[i,"|Z|"]
     }
   }
-  test_stat = sum(sorted_z.frame[which(sorted_z.frame[,"psi_Z"]== T),"rank_Z"])
+  
+  sorted_big.frame["Ranks"] = sorted_big.frame["Ranks"]-zero_count 
+  for(i in 1:nrow(sorted_big.frame)) {
+    if (sorted_big.frame[i,"Z"] == 0) {
+      sorted_big.frame[i,"Ranks"] = 0
+    }
+  }
+  
+  
+  psi_prototype_str = "\\[\\Psi_i=\\begin{cases}1, & Z_i > 0 \\\\ 0 , & Z_i < 0\\end{cases}\\]"
+  
+  test_stat = sum(sorted_big.frame[which(sorted_big.frame[,"Psi"]== T),"Ranks"])
   test_stat_str = paste("T_{c}^{+}=\\Sigma\\Psi_i=",test_stat,sep="")
   
   calc_test_stat_str = paste("$$",z_abstract_str,"$$\n",psi_prototype_str,"\n$$",test_stat_str,"$$",sep="")
   
+  sorted_big.frame = sorted_big.frame[order(sorted_big.frame[,1]),]
+  display.frame = t(sorted_big.frame)
+  display.frame = display.frame[-1,]
+  
+  if (paired == "paired") {
+    digits_mat = matrix(c(data_digits,data_digits,data_digits,data_digits,1,0),nrow = length(display.frame[,1]), ncol=length(display.frame[1,])+1, byrow=FALSE)
+  }
+  else {
+    digits_mat = matrix(c(data_digits,data_digits,data_digits,1,0),nrow = length(display.frame[,1]), ncol=length(display.frame[1,])+1, byrow=FALSE)
+  }
+  display_str = capture.output(xtable(display.frame,digits=digits_mat))
+  
   ## CALCULATE P-VALUE
   if (alt_hyp_type == "<") {
     if (ties_exist == T) {
+      p_call_str = paste("P(T^{+}\\leq T\\_{c}^{+}) &= \\texttt{psignrank(T\\_c\\_plus - 1,n)}\\\\ &= \\texttt{psignrank(",test_stat," - 1,",n,")}\\\\",sep="")
       test_stat = test_stat - 1
+    } else {
+      p_call_str = paste("P(T^{+}\\leq T\\_{c}^{+}) &= \\texttt{psignrank(T\\_c\\_plus,n)}\\\\ &= \\texttt{psignrank(",test_stat,",",n,")}\\\\",sep="")
+      
     }
     p_val = psignrank(test_stat,n)
-    p_call_str = paste("P(T^{+}\\leq T_{c}^{+}) &= \\texttt{psignrank(T\\_c\\_plus,n)}\\\\ &= \\texttt{psignrank(",test_stat,",",n,")}\\\\",sep="")
     alter_param = "less"
   } else if (alt_hyp_type == ">") {
-    p_val = psignrank(test_stat,n,lower.tail=F)
-    p_call_str = paste("P(T^{+}\\geq T_{c}^{+}) &= \\texttt{psignrank(T\\_c\\_plus - 1,n,lower.tail=F)}\\\\ &= \\texttt{psignrank(",test_stat,",",n,",lower.tail=F)}\\\\",sep="")
+    p_val = psignrank(test_stat-1,n,lower.tail=F)
+    p_call_str = paste("P(T^{+}\\geq T_{c}^{+}) &= \\texttt{psignrank(T\\_c\\_plus - 1,n,lower.tail=F)}\\\\ &= \\texttt{psignrank(",test_stat," - 1,",n,",lower.tail=F)}\\\\",sep="")
     alter_param = "greater"
   } else { # \neq
     if (test_stat < (n*(n+1))/4) {
@@ -229,10 +281,10 @@ if (as.character(test_type) == "1") { # in One-Sample t-Test Mode
         test_stat = test_stat - 1
       }
       p_val = 2*psignrank(test_stat,n)
-      p_call_str = paste("2*P(T^{+}\\leq T_{c}^{+}) &= \\texttt{2*psignrank(T\\_{c}^{+},n)}\\\\ &= \\texttt{2*psignrank(",test_stat,",",n,")}\\\\",sep="")
+      p_call_str = paste("2*P(T^{+}\\leq T_{c}^{+}) &= \\texttt{2*psignrank(T\\_c\\_plus,n)}\\\\ &= \\texttt{2*psignrank(",test_stat,",",n,")}\\\\",sep="")
     } else if ((test_stat > (n*(n+1))/4)) {
       p_val = 2*psignrank(test_stat-1,n,lower.tail=F)
-      p_call_str = paste("2*P(T^{+}\\geq T_{c}^{+}) &= \\texttt{2*psignrank(T\\_{c}^{+}-1,n)}\\\\ &= \\texttt{2*psignrank(",test_stat-1,",",n,")}\\\\",sep="")
+      p_call_str = paste("2*P(T^{+}\\geq T_{c}^{+}) &= \\texttt{2*psignrank(T\\_c\\_plus-1,n)}\\\\ &= \\texttt{2*psignrank(",test_stat," - 1,",n,")}\\\\",sep="")
     }
     alter_param = "two.sided"
   }
@@ -293,7 +345,7 @@ if (as.character(test_type) == "1") {
 
 p_state_hyp <- "State the hypotheses of the test."
 p_calc_test_stat <- "Calculate the test statistic by hand."
-p_calc_p_val <- "Calculate the p-value (\"by hand\")."
+p_calc_p_val <- "Calculate the p-value (``by hand\")."
 p_interpret_p_val <- "Interpret the p-value in context."
 p_conclusion <- "State the conclusion of the test in context."
 p_run_in_R <- "Run the Signed Rank test in \\verb|R|. Report your function and output."
@@ -317,6 +369,7 @@ cat(null_hyp_str,"\n")
 cat(alt_hyp_str,"\n")
 
 cat(item,p_calc_test_stat,"\n")
+cat(display_str,"\n")
 cat(calc_test_stat_str,"\n")
 
 cat(item,p_calc_p_val,"\n")
