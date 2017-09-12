@@ -49,7 +49,7 @@ null_hyp_expl_str = "a median debt amount for graduating MDs of \\$140,616"
 alt_hyp_type = "\\neq"
 #"There is [evidence measure] that ___________ (p = X.XXXX): "
 # -ing tense
-alt_hyp_expl_str = "doctors having graduating with more than \\$140,616 in debt"
+alt_hyp_expl_str = "doctors graduating with more than \\$140,616 in debt"
 
 ## FOR TESTING ONLY: TAKE OUT!!
 
