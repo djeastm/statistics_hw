@@ -1,4 +1,6 @@
+library(xtable)
 options(xtable.comment = FALSE)
+
 ## ENTER DATA
 # lines = readline(prompt="How many lines of data? ")
 # data_str = readline(prompt="Please enter data as a vector with spaces separating each entry: ")
@@ -24,15 +26,17 @@ options(xtable.comment = FALSE)
 #paired = "paired"
 
 # Wilcoxon Sign Rank Test
-data1_label = "MD"
+data1_label = "2007"
 # data1 = c(12500,22300,14500,32300,20800,19200,15800,17500,23300,42100,16800,14500)
-data2_label = ""
+data2_label = "1987"
 # data2 = c(11750,20900,14800,29900,21500,18400,14500,17900,21400,43200,15200,14200)
-data1 = c(164353, 148135, 168235, 168932, 152793, 165827, 161855,
-          118044, 172665, 162262, 150408, 159091, 141299, 179262)
-data2 = c()
- paired = "not paired"
- data_digits = 0
+data1 = c(-0.048, -0.064, -0.051, -0.121, -0.044, 0.006)
+data2 = c(-0.056, -0.12, -0.035, -0.041, 0.026, 0.049)
+paired = "paired"
+data_digits = 3
+confidence = T 
+conf_ratio = .90
+median_expl = "median difference in interannual variation of sea level"
 
 # data1_label = "Hours"
 # data1 = c(4, 7.5, 8, 7, 6, 5, 5.5, 6.5, 7 ,7.5, 4.5)
@@ -43,13 +47,13 @@ data2 = c()
 
 # Both
 test_type = "3"
-null_hyp = 140616
+null_hyp = 0
 #"If there is _______, we will see our data or more extreme...:"
-null_hyp_expl_str = "a median debt amount for graduating MDs of \\$140,616"
+null_hyp_expl_str = "no variation in the median of sea level"
 alt_hyp_type = "\\neq"
 #"There is [evidence measure] that ___________ (p = X.XXXX): "
 # -ing tense
-alt_hyp_expl_str = "doctors graduating with more than \\$140,616 in debt"
+alt_hyp_expl_str = "interannual sea level variation has changed"
 
 ## FOR TESTING ONLY: TAKE OUT!!
 
@@ -387,3 +391,50 @@ cat("\\par",r_output_str,"\n")
 
 
 cat(end_enum,"\n")
+
+if (confidence == T) {
+  #Compute differences
+  library(Rfit)
+  swa = sort(walsh(Z))
+  conf_diff_command_str = paste("\\texttt{> swa = sort(walsh(Z))}",sep="")
+  conf_diff_str = swa #split(swa, ceiling(seq_along(swa)/10))
+  
+  #Estimator
+  estimator = median(swa)
+  estimator_command_str = paste("\\texttt{> estimator = median(swa)}",sep="")
+  estimator_str = paste("$$\\theta = ",round(estimator,data_digits+1),"$$",sep="")
+  
+  #Confidence Interval
+  n = length(Z)
+  tail = (1-conf_ratio)/2
+  v = qsignrank(tail,n)
+  conf_int = c(swa[v],swa[length(swa)+1-v])
+  conf_int_first = round(conf_int[1],data_digits)
+  conf_int_second = round(conf_int[2],data_digits)
+  conf_int_command_str = paste("\\texttt{> n = length(Z)}\\\\ \\texttt{> tail = (1-",conf_ratio,")/2}\\\\ \\texttt{> v = qsignrank(tail,n)} \\\\ \\texttt{> c(swa[v],swa[length(swa)+1-v])} \\\\ \\texttt{",round(conf_int[1],data_digits)," ",round(conf_int[2],data_digits),"}",sep="")
+  conf_int_str = paste("The ",conf_ratio*100,"\\% confidence interval is between ", conf_int_first," and ",conf_int_second,".",sep="")
+  
+  #Interpret
+  interpret_str = paste("This study is approximately ",conf_ratio*100,"\\% confident that the ",median_expl," is between ", conf_int_first," and ",conf_int_second,".",sep="")
+  
+  cat(beg_enum,"\n")
+  
+  cat (item,"\n")
+  cat("\\par", conf_diff_command_str,"\n")
+  cat("\\par")
+  cat(conf_diff_str)
+  cat("\n")
+
+  cat (item,"\n")
+  cat("\\par", estimator_command_str,"\n")
+  cat("\\par", estimator_str,"\n")
+  
+  cat (item,"\n")
+  cat("\\par", conf_int_command_str,"\n")
+  cat("\\par", conf_int_str,"\n")
+  
+  cat (item,"\n")
+  cat("\\par", interpret_str,"\n")
+  
+  cat(end_enum,"\n")
+}
